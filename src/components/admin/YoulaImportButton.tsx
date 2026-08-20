@@ -3,11 +3,52 @@
 import { useState } from "react";
 import { Button, useAuth } from "@payloadcms/ui";
 
+type ImportStatusResponse = {
+  success?: boolean;
+  started?: boolean;
+  message?: string;
+  error?: string;
+  syncStatus?: string;
+  syncMessage?: string | null;
+};
+
+async function readJson(response: Response): Promise<ImportStatusResponse> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const text = await response.text();
+
+  if (!contentType.includes("application/json")) {
+    const preview = text.replace(/\s+/g, " ").slice(0, 180);
+    throw new Error(
+      `Сервер вернул HTML вместо JSON (HTTP ${response.status}). ` +
+        `Обычно это 502/504 от Nginx при таймауте или неверный URL. ` +
+        `Фрагмент: ${preview || "<пусто>"}`,
+    );
+  }
+
+  try {
+    return JSON.parse(text) as ImportStatusResponse;
+  } catch {
+    throw new Error(`Некорректный JSON (HTTP ${response.status}): ${text.slice(0, 180)}`);
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function YoulaImportButton() {
   const { token, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const authHeaders = (): HeadersInit => {
+    if (!token) return {};
+    return {
+      Authorization: `JWT ${token}`,
+      "Content-Type": "application/json",
+    };
+  };
 
   const handleSync = async () => {
     setLoading(true);
@@ -23,26 +64,54 @@ export function YoulaImportButton() {
         throw new Error("Импорт доступен только администратору (role=admin).");
       }
 
-      const response = await fetch("/api/globals/youla-import/sync", {
+      const startResponse = await fetch("/api/import-youla", {
         method: "POST",
         credentials: "include",
-        headers: {
-          Authorization: `JWT ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: authHeaders(),
       });
 
-      const payload = (await response.json()) as {
-        success?: boolean;
-        message?: string;
-        error?: string;
-      };
+      const startPayload = await readJson(startResponse);
 
-      if (!response.ok || !payload.success) {
-        throw new Error(payload.error ?? payload.message ?? "Не удалось выполнить импорт");
+      if (!startResponse.ok || !startPayload.success) {
+        throw new Error(startPayload.error ?? startPayload.message ?? "Не удалось запустить импорт");
       }
 
-      setMessage(payload.message ?? "Импорт завершён");
+      setMessage(startPayload.message ?? "Импорт запущен...");
+
+      // Poll until background job finishes (avoids proxy HTML timeouts).
+      for (let attempt = 0; attempt < 600; attempt += 1) {
+        await sleep(2000);
+
+        const statusResponse = await fetch("/api/import-youla", {
+          method: "GET",
+          credentials: "include",
+          headers: authHeaders(),
+          cache: "no-store",
+        });
+
+        const statusPayload = await readJson(statusResponse);
+
+        if (!statusResponse.ok || !statusPayload.success) {
+          throw new Error(statusPayload.error ?? "Не удалось получить статус импорта");
+        }
+
+        const syncStatus = statusPayload.syncStatus ?? "idle";
+        const syncMessage = statusPayload.syncMessage ?? null;
+
+        if (syncStatus === "running") {
+          if (syncMessage) setMessage(syncMessage);
+          continue;
+        }
+
+        if (syncStatus === "error") {
+          throw new Error(syncMessage ?? "Импорт завершился с ошибкой");
+        }
+
+        setMessage(syncMessage ?? "Импорт завершён");
+        return;
+      }
+
+      throw new Error("Импорт слишком долго выполняется. Обновите страницу и проверьте статус.");
     } catch (syncError) {
       setError(syncError instanceof Error ? syncError.message : "Ошибка импорта");
     } finally {
