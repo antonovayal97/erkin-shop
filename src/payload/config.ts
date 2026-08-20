@@ -16,6 +16,8 @@ import { ShopSettings } from "./globals/ShopSettings";
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
+const serverURL = process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000";
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -36,7 +38,11 @@ export default buildConfig({
     },
   }),
   sharp,
-  serverURL: process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000",
+  serverURL,
+  // Cookie auth rejects requests whose Origin is not in this list.
+  // Must match the public HTTPS URL on VPS (same as NEXT_PUBLIC_SERVER_URL).
+  csrf: [serverURL],
+  cors: [serverURL],
   upload: {
     limits: {
       fileSize: 10_000_000,

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@payloadcms/ui";
+import { Button, useAuth } from "@payloadcms/ui";
 
 export function YoulaImportButton() {
+  const { token, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -14,9 +15,21 @@ export function YoulaImportButton() {
     setError(null);
 
     try {
+      if (!token) {
+        throw new Error("Нет сессии. Выйдите и войдите в админку снова.");
+      }
+
+      if (user && "role" in user && user.role !== "admin") {
+        throw new Error("Импорт доступен только администратору (role=admin).");
+      }
+
       const response = await fetch("/api/globals/youla-import/sync", {
         method: "POST",
         credentials: "include",
+        headers: {
+          Authorization: `JWT ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       const payload = (await response.json()) as {

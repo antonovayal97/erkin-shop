@@ -16,8 +16,22 @@ export const YoulaImport: GlobalConfig = {
       path: "/sync",
       method: "post",
       handler: async (req) => {
-        if (!req.user || req.user.role !== "admin") {
-          return Response.json({ success: false, error: "Доступ запрещён" }, { status: 403 });
+        if (!req.user) {
+          return Response.json(
+            {
+              success: false,
+              error:
+                "Сессия не распознана. Проверьте NEXT_PUBLIC_SERVER_URL на VPS (должен быть ваш https://домен) и перелогиньтесь.",
+            },
+            { status: 403 },
+          );
+        }
+
+        if (req.user.role !== "admin") {
+          return Response.json(
+            { success: false, error: "Доступ запрещён: нужна роль admin у пользователя" },
+            { status: 403 },
+          );
         }
 
         try {
