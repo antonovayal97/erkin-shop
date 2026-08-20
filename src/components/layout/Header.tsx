@@ -43,6 +43,15 @@ export function Header({ categories = [] }: HeaderProps) {
     return () => clearTimeout(timeout);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
   const closeMobileMenu = () => setMobileOpen(false);
 
   const headerCategories = categories.slice(0, 8);
@@ -169,8 +178,8 @@ export function Header({ categories = [] }: HeaderProps) {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-card animate-slide-down">
-          <nav className="container mx-auto flex flex-col gap-2 px-4 py-4">
+        <div className="md:hidden border-t border-border bg-card animate-slide-down max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
+          <nav className="container mx-auto flex flex-col gap-2 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -189,7 +198,7 @@ export function Header({ categories = [] }: HeaderProps) {
 
             {categories.length > 0 && (
               <div className="mt-2 border-t border-border pt-2">
-                <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="sticky top-0 z-10 bg-card px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Категории
                 </p>
                 {categories.map((category) => (
