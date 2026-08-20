@@ -14,10 +14,14 @@ export function bindSwiperNavigation(
   navigation.prevEl = prevEl;
   navigation.nextEl = nextEl;
 
-  if (swiper.navigation.initialized) {
-    swiper.navigation.destroy();
+  const nav = swiper.navigation as typeof swiper.navigation & {
+    initialized?: boolean;
+  };
+
+  if (nav.initialized) {
+    nav.destroy();
   }
 
-  swiper.navigation.init();
-  swiper.navigation.update();
+  nav.init();
+  nav.update();
 }

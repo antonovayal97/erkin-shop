@@ -1,6 +1,13 @@
 import { CollectionConfig } from "payload";
 
-function rewriteMediaUrls<T extends Record<string, unknown>>(doc: T): T {
+type MediaDoc = {
+  filename?: unknown;
+  url?: string;
+  thumbnailURL?: string;
+  sizes?: Record<string, { filename?: string; url?: string }>;
+};
+
+function rewriteMediaUrls(doc: MediaDoc): MediaDoc {
   const filename = typeof doc.filename === "string" ? doc.filename : undefined;
 
   if (filename) {
@@ -8,16 +15,15 @@ function rewriteMediaUrls<T extends Record<string, unknown>>(doc: T): T {
   }
 
   if (doc.sizes && typeof doc.sizes === "object") {
-    for (const size of Object.values(doc.sizes as Record<string, { filename?: string; url?: string }>)) {
+    for (const size of Object.values(doc.sizes)) {
       if (size?.filename) {
         size.url = `/media/${size.filename}`;
       }
     }
   }
 
-  const sizes = doc.sizes as Record<string, { filename?: string }> | undefined;
-  if (sizes?.thumbnail?.filename) {
-    doc.thumbnailURL = `/media/${sizes.thumbnail.filename}`;
+  if (doc.sizes?.thumbnail?.filename) {
+    doc.thumbnailURL = `/media/${doc.sizes.thumbnail.filename}`;
   }
 
   return doc;
@@ -31,7 +37,7 @@ export const Media: CollectionConfig = {
   hooks: {
     afterRead: [
       ({ doc }) => {
-        return rewriteMediaUrls(doc as Record<string, unknown>);
+        return rewriteMediaUrls(doc as MediaDoc);
       },
     ],
   },
