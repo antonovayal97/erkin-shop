@@ -101,12 +101,12 @@ export function ProductCard({ product, className }: ProductCardProps) {
             }}
           />
 
-          {/* Quick add / go to cart */}
+          {/* Quick add on hover (desktop) / go to cart when already added */}
           <div className={cn(
             "absolute bottom-2 left-2 right-2 transition-all duration-200",
             inCart
               ? "translate-y-0 opacity-100"
-              : "translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
+              : "hidden md:block translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
           )}>
             {inCart ? (
               <Button
