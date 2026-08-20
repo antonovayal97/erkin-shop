@@ -1,0 +1,74 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@payloadcms/ui";
+
+export function YoulaImportButton() {
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSync = async () => {
+    setLoading(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/globals/youla-import/sync", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      const payload = (await response.json()) as {
+        success?: boolean;
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error ?? payload.message ?? "Не удалось выполнить импорт");
+      }
+
+      setMessage(payload.message ?? "Импорт завершён");
+    } catch (syncError) {
+      setError(syncError instanceof Error ? syncError.message : "Ошибка импорта");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        padding: "16px",
+        border: "1px solid var(--theme-elevation-150)",
+        borderRadius: "8px",
+        background: "var(--theme-elevation-50)",
+      }}
+    >
+      <div>
+        <strong style={{ display: "block", marginBottom: "4px" }}>Импорт с Youla</strong>
+        <span style={{ color: "var(--theme-elevation-800)", fontSize: "14px" }}>
+          Загрузит категории и товары из указанного магазина, обновит существующие и архивирует
+          удалённые на Youla.
+        </span>
+      </div>
+
+      <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+        <Button buttonStyle="primary" disabled={loading} onClick={handleSync}>
+          {loading ? "Импорт выполняется..." : "Запустить импорт"}
+        </Button>
+      </div>
+
+      {message ? (
+        <p style={{ margin: 0, color: "var(--theme-success-500)", whiteSpace: "pre-wrap" }}>{message}</p>
+      ) : null}
+      {error ? (
+        <p style={{ margin: 0, color: "var(--theme-error-500)", whiteSpace: "pre-wrap" }}>{error}</p>
+      ) : null}
+    </div>
+  );
+}
