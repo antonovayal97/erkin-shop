@@ -1,4 +1,5 @@
 import { CollectionConfig } from "payload";
+import { notifyNewOrder } from "@/lib/order-notifications";
 
 export const Orders: CollectionConfig = {
   slug: "orders",
@@ -148,6 +149,14 @@ export const Orders: CollectionConfig = {
           data.orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
         }
         return data;
+      },
+    ],
+    afterChange: [
+      ({ doc, operation, req }) => {
+        if (operation !== "create") return doc;
+        // Не блокируем оформление заказа при сбое Telegram/email
+        void notifyNewOrder(req.payload, doc);
+        return doc;
       },
     ],
   },
