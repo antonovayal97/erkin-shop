@@ -24,6 +24,11 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "ERKIN SHOP",
   },
+  icons: {
+    icon: "/api/favicon",
+    shortcut: "/api/favicon",
+    apple: "/api/favicon",
+  },
 };
 
 export const viewport: Viewport = {

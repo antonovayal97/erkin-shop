@@ -21,6 +21,16 @@ export const ShopSettings: GlobalConfig = {
       },
     },
     {
+      name: "favicon",
+      type: "upload",
+      relationTo: "media",
+      label: "Favicon сайта",
+      admin: {
+        description:
+          "Загрузите любое изображение. Оно автоматически будет преобразовано в PNG favicon 64×64.",
+      },
+    },
+    {
       name: "orderNotifications",
       type: "group",
       label: "Уведомления о заказах",
