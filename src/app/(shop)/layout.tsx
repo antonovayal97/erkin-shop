@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     default: "ERKIN SHOP",
     template: "%s | ERKIN SHOP",
   },
-  description: "Якутский магазин полезных вещей. Быстрая доставка, лёгкий возврат.",
+  description: "Якутский магазин полезных вещей. Быстрая бесплатная доставка.",
   openGraph: {
     type: "website",
     siteName: "ERKIN SHOP",

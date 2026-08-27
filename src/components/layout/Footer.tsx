@@ -22,7 +22,7 @@ export async function Footer() {
               ERKIN SHOP
             </Link>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Якутский магазин полезных вещей. Быстрая доставка, лёгкий возврат.
+              Якутский магазин полезных вещей. Быстрая бесплатная доставка.
             </p>
           </div>
 
