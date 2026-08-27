@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#f4f4f5",
 };
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {

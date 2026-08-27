@@ -3,7 +3,7 @@ export type Theme = "light" | "dark";
 export const THEME_STORAGE_KEY = "theme";
 
 export function parseTheme(value?: string | null): Theme {
-  return value === "light" ? "light" : "dark";
+  return value === "dark" ? "dark" : "light";
 }
 
 export function applyTheme(theme: Theme) {
@@ -24,5 +24,5 @@ export function getStoredTheme(): Theme {
   const stored = localStorage.getItem(THEME_STORAGE_KEY);
   if (stored === "light" || stored === "dark") return stored;
 
-  return "dark";
+  return "light";
 }
