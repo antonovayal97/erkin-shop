@@ -2,7 +2,7 @@ import type { YoulaCategory, YoulaProductDetails, YoulaProductListItem, YoulaSto
 
 const GRAPHQL_URL = "https://api-gw.youla.ru/graphql";
 const PRODUCT_API_URL = "https://api.youla.io/api/v1/product";
-const DEFAULT_STORE_URL = "https://youla.ru/store/6658996c2ca0aa09e3cafccf";
+const DEFAULT_STORE_URL = "https://youla.ru/user/66572765da5c52f04a0592bf/";
 
 const REQUEST_HEADERS = {
   "User-Agent": "Mozilla/5.0 (compatible; ShopImporter/1.0)",
@@ -43,7 +43,7 @@ async function graphqlRequest<T>(query: string, variables: Record<string, unknow
 }
 
 export function extractStoreId(storeUrl: string): string {
-  const match = storeUrl.match(/\/store\/([a-f0-9]{24})/i);
+  const match = storeUrl.match(/\/(?:store|user)\/([a-f0-9]{24})/i);
   if (!match) {
     throw new Error("Некорректная ссылка на магазин Youla");
   }

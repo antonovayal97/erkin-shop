@@ -1,7 +1,7 @@
 import type { Payload } from "payload";
 import { runYoulaImport } from "./sync";
 
-const DEFAULT_STORE_URL = "https://youla.ru/store/6658996c2ca0aa09e3cafccf";
+const DEFAULT_STORE_URL = "https://youla.ru/user/66572765da5c52f04a0592bf/";
 
 function buildSummary(result: Awaited<ReturnType<typeof runYoulaImport>>) {
   const { stats } = result;

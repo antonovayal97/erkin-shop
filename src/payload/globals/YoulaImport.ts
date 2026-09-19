@@ -59,7 +59,7 @@ export const YoulaImport: GlobalConfig = {
       name: "storeUrl",
       type: "text",
       required: true,
-      defaultValue: "https://youla.ru/store/6658996c2ca0aa09e3cafccf",
+      defaultValue: "https://youla.ru/user/66572765da5c52f04a0592bf/",
       admin: {
         description: "Ссылка на магазин Youla для парсинга",
       },
