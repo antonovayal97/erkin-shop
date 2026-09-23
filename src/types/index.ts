@@ -36,6 +36,7 @@ export interface Product {
   attributes?: ProductAttribute[];
   tags?: { tag: string }[];
   status: "draft" | "published" | "archived";
+  active?: boolean;
   featured?: boolean;
   seo?: {
     title?: string;
@@ -51,6 +52,7 @@ export interface Category {
   name: string;
   slug: string;
   description?: string;
+  active?: boolean;
   image?: ProductImage;
   parent?: Category | string;
   seo?: {

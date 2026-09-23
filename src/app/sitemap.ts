@@ -17,12 +17,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [productsResult, categoriesResult] = await Promise.all([
       payload.find({
         collection: "products",
-        where: { status: { equals: "published" } },
+        where: {
+          and: [
+            { status: { equals: "published" } },
+            { active: { not_equals: false } },
+            { "category.active": { not_equals: false } },
+          ],
+        },
         limit: 1000,
         select: { slug: true, updatedAt: true },
       }),
       payload.find({
         collection: "categories",
+        where: { active: { not_equals: false } },
         limit: 100,
         select: { slug: true, updatedAt: true },
       }),

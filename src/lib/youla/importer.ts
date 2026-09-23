@@ -157,6 +157,7 @@ export async function importYoulaData(
       if (!categoryId) {
         const fallback = await payload.find({
           collection: "categories",
+          where: { active: { not_equals: false } },
           limit: 1,
           sort: "createdAt",
         });

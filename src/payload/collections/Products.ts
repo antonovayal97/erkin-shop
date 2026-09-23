@@ -4,7 +4,7 @@ export const Products: CollectionConfig = {
   slug: "products",
   admin: {
     useAsTitle: "name",
-    defaultColumns: ["name", "price", "category", "stock", "status"],
+    defaultColumns: ["name", "price", "category", "stock", "status", "active"],
   },
   access: {
     read: () => true,
@@ -141,6 +141,15 @@ export const Products: CollectionConfig = {
         { label: "Published", value: "published" },
         { label: "Archived", value: "archived" },
       ],
+    },
+    {
+      name: "active",
+      type: "checkbox",
+      required: true,
+      defaultValue: true,
+      admin: {
+        description: "Показывать товар на сайте. Снятие галочки скрывает товар из каталога, поиска и sitemap. Не меняется при импорте с Youla.",
+      },
     },
     {
       name: "featured",

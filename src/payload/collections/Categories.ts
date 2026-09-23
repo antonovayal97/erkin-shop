@@ -4,6 +4,7 @@ export const Categories: CollectionConfig = {
   slug: "categories",
   admin: {
     useAsTitle: "name",
+    defaultColumns: ["name", "slug", "active"],
   },
   access: {
     read: () => true,
@@ -36,6 +37,15 @@ export const Categories: CollectionConfig = {
     {
       name: "description",
       type: "textarea",
+    },
+    {
+      name: "active",
+      type: "checkbox",
+      required: true,
+      defaultValue: true,
+      admin: {
+        description: "Показывать категорию на сайте. Снятие галочки скрывает категорию из списков, её страница и все её товары отдают 404 / не показываются. Не меняется при импорте с Youla.",
+      },
     },
     {
       name: "image",

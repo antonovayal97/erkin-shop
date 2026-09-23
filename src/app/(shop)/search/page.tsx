@@ -25,6 +25,8 @@ export default async function SearchPage({
         where: {
           and: [
             { status: { equals: "published" } },
+            { active: { not_equals: false } },
+            { "category.active": { not_equals: false } },
             { name: { like: q.trim() } },
           ],
         },

@@ -22,12 +22,19 @@ interface CatalogPageProps {
 async function getProducts(params: Awaited<CatalogPageProps["searchParams"]>) {
   try {
     const payload = await getPayloadClient();
-    const where: Where[] = [{ status: { equals: "published" } }];
+    const where: Where[] = [
+      { status: { equals: "published" } },
+      { active: { not_equals: false } },
+      { "category.active": { not_equals: false } },
+    ];
 
     if (params.category) {
       const category = await getCategoryBySlug(params.category);
       if (category) {
         where.push({ category: { equals: category.id } });
+      } else {
+        // неизвестная или деактивированная категория — показываем пустой список
+        return { docs: [], totalDocs: 0, totalPages: 1, page: 1 };
       }
     }
 

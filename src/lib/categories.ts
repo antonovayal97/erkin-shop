@@ -10,7 +10,7 @@ async function getCategoryIdsWithPublishedProducts(): Promise<string[]> {
   while (hasNextPage) {
     const productsResult = await payload.find({
       collection: "products",
-      where: { status: { equals: "published" } },
+      where: { and: [{ status: { equals: "published" } }, { active: { not_equals: false } }] },
       limit: 500,
       page,
       depth: 0,
@@ -47,7 +47,7 @@ export async function getAllCategories(): Promise<Category[]> {
 
     const result = await payload.find({
       collection: "categories",
-      where: { id: { in: categoryIds } },
+      where: { and: [{ id: { in: categoryIds } }, { active: { not_equals: false } }] },
       limit: 200,
       sort: "name",
       depth: 1,
@@ -63,7 +63,7 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
     const payload = await getPayloadClient();
     const result = await payload.find({
       collection: "categories",
-      where: { slug: { equals: slug } },
+      where: { and: [{ slug: { equals: slug } }, { active: { not_equals: false } }] },
       limit: 1,
       depth: 1,
     });
@@ -107,7 +107,7 @@ export async function getFirstProductImagesByCategory(
     while (hasNextPage && pending.size > 0) {
       const productsResult = await payload.find({
         collection: "products",
-        where: { status: { equals: "published" } },
+        where: { and: [{ status: { equals: "published" } }, { active: { not_equals: false } }] },
         sort: "createdAt",
         limit: 500,
         page,

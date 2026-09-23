@@ -17,7 +17,13 @@ async function getProduct(slug: string): Promise<Product | null> {
     const payload = await getPayloadClient();
     const result = await payload.find({
       collection: "products",
-      where: { slug: { equals: slug } },
+      where: {
+        and: [
+          { slug: { equals: slug } },
+          { active: { not_equals: false } },
+          { "category.active": { not_equals: false } },
+        ],
+      },
       depth: 2,
       limit: 1,
     });
@@ -39,6 +45,7 @@ async function getRelatedProducts(product: Product): Promise<Product[]> {
       where: {
         and: [
           { status: { equals: "published" } },
+          { active: { not_equals: false } },
           { category: { equals: categoryId } },
           { id: { not_equals: product.id } },
         ],
