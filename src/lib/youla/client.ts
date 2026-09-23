@@ -2,6 +2,9 @@ import type { YoulaCategory, YoulaProductDetails, YoulaProductListItem, YoulaSto
 
 const GRAPHQL_URL = "https://api-gw.youla.ru/graphql";
 const PRODUCT_API_URL = "https://api.youla.io/api/v1/product";
+const USER_API_URL = "https://api.youla.io/api/v1/user";
+const PRODUCTS_LIST_API_URL = "https://api.youla.io/api/v1/products";
+const CATEGORY_API_URL = "https://api.youla.io/api/v1/categories";
 const DEFAULT_STORE_URL = "https://youla.ru/user/66572765da5c52f04a0592bf/";
 
 const REQUEST_HEADERS = {
@@ -42,12 +45,36 @@ async function graphqlRequest<T>(query: string, variables: Record<string, unknow
   return payload.data;
 }
 
+export type YoulaReferenceKind = "store" | "user";
+
 export function extractStoreId(storeUrl: string): string {
   const match = storeUrl.match(/\/(?:store|user)\/([a-f0-9]{24})/i);
   if (!match) {
     throw new Error("Некорректная ссылка на магазин Youla");
   }
   return match[1];
+}
+
+export function extractReferenceKind(storeUrl: string): YoulaReferenceKind {
+  const match = storeUrl.match(/\/(store|user)\/[a-f0-9]{24}/i);
+  if (!match) {
+    throw new Error("Некорректная ссылка на магазин Youla");
+  }
+  return match[1].toLowerCase() === "user" ? "user" : "store";
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function restRequest<T>(url: string): Promise<T> {
+  const response = await fetch(url, { headers: REQUEST_HEADERS });
+
+  if (!response.ok) {
+    throw new Error(`Youla REST API HTTP ${response.status} for ${url}`);
+  }
+
+  return (await response.json()) as T;
 }
 
 export async function fetchStoreInfo(storeId: string): Promise<YoulaStoreInfo> {
@@ -295,19 +322,191 @@ export async function fetchProductDetailsBatch(
   return detailed;
 }
 
+interface YoulaUserApiResponse {
+  data?: {
+    id: string;
+    name: string;
+    image?: { url?: string } | null;
+    description?: string;
+  };
+}
+
+interface RestProductItem {
+  id: string;
+  name: string;
+  url?: string;
+  price?: number;
+  discounted_price?: number;
+  description?: string;
+  category?: number;
+  subcategory?: number;
+  images?: { url: string }[];
+  fields?: { name?: string; title?: string; value?: string }[];
+  attributes?: { name?: string; title?: string; value?: string }[];
+  is_published?: boolean;
+  is_sold?: boolean;
+  is_archived?: boolean;
+  is_deleted?: boolean;
+  is_blocked?: boolean;
+}
+
+function isActiveProduct(item: RestProductItem): boolean {
+  return Boolean(
+    item.is_published && !item.is_sold && !item.is_archived && !item.is_deleted && !item.is_blocked,
+  );
+}
+
+function mapRestProduct(item: RestProductItem): YoulaProductDetails {
+  const priceKopecks = item.discounted_price ?? item.price ?? 0;
+  const compareKopecks =
+    item.price && item.discounted_price && item.price > item.discounted_price ? item.price : undefined;
+  const attributes = [...(item.fields ?? []), ...(item.attributes ?? [])]
+    .map((field) => ({
+      key: (field.title || field.name || "").trim(),
+      value: (field.value || "").trim(),
+    }))
+    .filter((field) => field.key && field.value);
+
+  return {
+    id: item.id,
+    name: item.name.trim(),
+    url: item.url,
+    price: priceKopecks / 100,
+    comparePrice: compareKopecks ? compareKopecks / 100 : undefined,
+    imageUrls: (item.images ?? []).map((image) => image.url).filter(Boolean),
+    categoryId: item.category,
+    subcategoryId: item.subcategory,
+    description: item.description?.trim(),
+    attributes,
+  };
+}
+
+export async function fetchUserInfo(userId: string): Promise<YoulaStoreInfo> {
+  const payload = await restRequest<YoulaUserApiResponse>(`${USER_API_URL}/${userId}`);
+  const user = payload.data;
+
+  if (!user?.id) {
+    throw new Error("Профиль продавца Youla не найден");
+  }
+
+  return {
+    id: user.id,
+    title: user.name,
+    description: user.description,
+    logoUrl: user.image?.url,
+  };
+}
+
+// Публичный REST-лист товаров продавца. Пагинация: `page` с нуля, `status=active`
+// (без него выдача рандомизируется). Лимит API — 100 записей на страницу.
+export async function fetchUserProductList(
+  userId: string,
+  onProgress?: (loaded: number) => void,
+): Promise<YoulaProductDetails[]> {
+  const limit = 100;
+  const products = new Map<string, YoulaProductDetails>();
+
+  for (let page = 0; ; page += 1) {
+    const url = `${PRODUCTS_LIST_API_URL}?owner_id=${userId}&limit=${limit}&status=active&page=${page}`;
+    const payload = await restRequest<{ data?: RestProductItem[] }>(url);
+    const batch = payload.data ?? [];
+
+    for (const item of batch) {
+      if (item.id && item.name && isActiveProduct(item) && !products.has(item.id)) {
+        products.set(item.id, mapRestProduct(item));
+      }
+    }
+
+    onProgress?.(products.size);
+
+    if (batch.length < limit) {
+      break;
+    }
+
+    await sleep(150);
+  }
+
+  return [...products.values()];
+}
+
+interface RestCategoryApiResponse {
+  data?: {
+    id: number;
+    name: string;
+    slug?: string;
+    parent_id?: number;
+  };
+}
+
+// Для профиля нет магазиных категорий, поэтому собираем заголовки по
+// уникальным id категорий/подкатегорий из самих товаров.
+export async function fetchUserCategories(products: YoulaProductDetails[]): Promise<YoulaCategory[]> {
+  const ids = new Set<number>();
+  for (const product of products) {
+    if (product.categoryId) ids.add(product.categoryId);
+    if (product.subcategoryId) ids.add(product.subcategoryId);
+  }
+
+  const categories: YoulaCategory[] = [];
+
+  for (const id of ids) {
+    try {
+      const payload = await restRequest<RestCategoryApiResponse>(`${CATEGORY_API_URL}/${id}`);
+      const category = payload.data;
+      if (!category || typeof category.id !== "number") {
+        continue;
+      }
+      const parentId =
+        typeof category.parent_id === "number" && category.parent_id > 0 ? category.parent_id : 0;
+      categories.push({
+        id: category.id,
+        parentId,
+        level: parentId ? 2 : 1,
+        title: category.name,
+        slug: category.slug ?? String(category.id),
+        order: 0,
+      });
+      await sleep(80);
+    } catch {
+      // категорию без имени пропускаем: импорт откатится на категорию по умолчанию
+    }
+  }
+
+  return categories;
+}
+
 export async function parseYoulaStore(
   storeUrl: string,
   onProgress?: (message: string) => void,
 ) {
-  const storeId = extractStoreId(storeUrl);
+  const referenceId = extractStoreId(storeUrl);
+
+  // Профиль продавца (ссылка /user/...): товары — обычные объявления,
+  // получаем через публичный REST API.
+  if (extractReferenceKind(storeUrl) === "user") {
+    onProgress?.("Загрузка информации о продавце...");
+    const store = await fetchUserInfo(referenceId);
+
+    onProgress?.("Загрузка списка товаров...");
+    const products = await fetchUserProductList(referenceId, (loaded) => {
+      onProgress?.(`Товаров загружено: ${loaded}`);
+    });
+
+    onProgress?.(`Загрузка категорий (${products.length})...`);
+    const categories = await fetchUserCategories(products);
+
+    return { store, categories, products };
+  }
+
+  // Магазин Youla (ссылка /store/...): основной GraphQL-путь.
   onProgress?.("Загрузка информации о магазине...");
-  const store = await fetchStoreInfo(storeId);
+  const store = await fetchStoreInfo(referenceId);
 
   onProgress?.("Загрузка категорий...");
-  const categories = await fetchStoreCategories(storeId);
+  const categories = await fetchStoreCategories(referenceId);
 
   onProgress?.("Загрузка списка товаров...");
-  const productList = await fetchStoreProductList(storeId);
+  const productList = await fetchStoreProductList(referenceId);
 
   onProgress?.(`Загрузка карточек товаров (${productList.length})...`);
   const products = await fetchProductDetailsBatch(productList, (current, total) => {
