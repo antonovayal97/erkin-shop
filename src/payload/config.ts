@@ -12,6 +12,7 @@ import { Users } from "./collections/Users";
 import { Orders } from "./collections/Orders";
 import { YoulaImport } from "./globals/YoulaImport";
 import { ShopSettings } from "./globals/ShopSettings";
+import { migrations } from "./migrations/index";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -36,6 +37,12 @@ export default buildConfig({
     client: {
       url: process.env.DATABASE_URL ?? `file:${path.resolve(dirname, "../../shop.db")}`,
     },
+    // Папка миграций для команд `payload migrate*` (см. MIGRATIONS.md)
+    migrationDir: path.resolve(dirname, "./migrations"),
+    // В production Payload не автосинхронизирует схему: невыполненные
+    // миграции применяются автоматически при старте сервера (подходит
+    // для long-running сервера на VPS). В dev по-прежнему работает push.
+    prodMigrations: migrations,
   }),
   sharp,
   serverURL,

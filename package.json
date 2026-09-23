@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "import:youla": "tsx scripts/import-youla.ts"
+    "import:youla": "tsx scripts/import-youla.ts",
+    "payload": "NODE_OPTIONS=--no-deprecation payload",
+    "db:migrate": "payload migrate",
+    "db:migrate:create": "payload migrate:create",
+    "db:migrate:status": "payload migrate:status"
   },
   "dependencies": {
     "@payloadcms/db-sqlite": "^3.88.0",
