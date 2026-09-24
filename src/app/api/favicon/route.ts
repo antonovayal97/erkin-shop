@@ -39,7 +39,7 @@ export async function GET() {
       return new Response("Favicon не настроен", { status: 404 });
     }
 
-    const mediaPath = path.resolve(process.cwd(), "public/media", path.basename(filename));
+    const mediaPath = path.join(process.cwd(), "public" + "/media", path.basename(filename));
     const source = await fs.readFile(mediaPath);
     const favicon = await sharp(source)
       .resize(64, 64, {

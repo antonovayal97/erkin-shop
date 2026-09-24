@@ -19,6 +19,13 @@ const dirname = path.dirname(filename);
 
 const serverURL = process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000";
 
+// Во время `next build` Payload инициализируется при сборе данных страниц.
+// Включение `prodMigrations` в этот момент вызывает `migrate()`, затем
+// интерактивный CLI-запрос ("Run Payload in dev mode...") без stdin — build
+// зависает навсегда. Поэтому при сборке миграции отключаем, а в production
+// (NEXT_PHASE = phase-production-server) они применяются при старте сервера.
+const isBuilding = process.env.NEXT_PHASE === "phase-production-build";
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -42,7 +49,7 @@ export default buildConfig({
     // В production Payload не автосинхронизирует схему: невыполненные
     // миграции применяются автоматически при старте сервера (подходит
     // для long-running сервера на VPS). В dev по-прежнему работает push.
-    prodMigrations: migrations,
+    prodMigrations: isBuilding ? undefined : migrations,
   }),
   sharp,
   serverURL,

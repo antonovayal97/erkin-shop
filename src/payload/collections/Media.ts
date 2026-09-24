@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import { CollectionConfig } from "payload";
 
-const mediaDir = path.resolve(process.cwd(), "public/media");
+const mediaDir = path.join(process.cwd(), "public" + "/media");
 
 try {
   fs.mkdirSync(mediaDir, { recursive: true });

@@ -12,6 +12,14 @@ async function hasColumn(
 }
 
 export async function up({ db }: MigrateUpArgs): Promise<void> {
+  // Удаляем dev-маркер (batch = -1): он заставляет Payload спрашивать
+  // "Run Payload in dev mode?" интерактивно и блокировать неитерактивные
+  // команды (next build, payload migrate) без stdin.
+  try {
+    await db.run(sql.raw(`DELETE FROM payload_migrations WHERE batch = -1`));
+  } catch {
+    // таблицы payload_migrations может не быть на свежей БД — игнорируем
+  }
   // Adds the `active` checkbox column (introduced for admin deactivation).
   // Guarded with PRAGMA so it is safe on databases that already received the
   // column via dev-mode push, as well as production databases that are missing it.
